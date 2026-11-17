@@ -7,7 +7,6 @@ permissions:
   contents: write
 jobs:
   collect:
-    if: github.event_name == 'workflow_dispatch' || (github.event.schedule == '0 * * * 1')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,11 +14,17 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - name: Collecte et rédaction (uniquement lundi 7 h, Paris)
+      - name: Collecte et rédaction
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL: gpt-4o-mini
-        run: python collector/collect.py
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            python collector/collect.py --force
+          else
+            python collector/collect.py
+          fi
       - name: Enregistrer la revue
         run: |
           git config user.name "github-actions[bot]"
