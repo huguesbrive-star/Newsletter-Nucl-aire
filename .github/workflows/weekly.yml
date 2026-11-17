@@ -1,0 +1,28 @@
+name: Revue de presse hebdomadaire
+on:
+  schedule:
+    - cron: "0 * * * 1"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  collect:
+    if: github.event_name == 'workflow_dispatch' || (github.event.schedule == '0 * * * 1')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Collecte et rédaction (uniquement lundi 7 h, Paris)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: gpt-4o-mini
+        run: python collector/collect.py
+      - name: Enregistrer la revue
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add editions/
+          git diff --cached --quiet || (git commit -m "Publier la revue de presse hebdomadaire" && git push)
